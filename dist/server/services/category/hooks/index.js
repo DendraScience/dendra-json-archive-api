@@ -4,23 +4,34 @@ var _feathersHooksCommon = require('feathers-hooks-common');
 
 var _feathersErrors = require('feathers-errors');
 
-const CATEGORY_ID_REGEX = /^\w+(-\w+)*$/i;
+var _consts = require('../../../lib/consts');
 
 exports.before = {
   // all: [],
 
   find: [
-  // NOTE: Normally included here, but we don't want to coerce parent_category_id
+  // NOTE: Normally included here, but we don't want to coerce _id and parent_category_id
   // apiHooks.coerceQuery(),
 
   hook => {
+    const id = (0, _feathersHooksCommon.getByDot)(hook, 'params.query._id');
+    if (typeof id === 'string' && !_consts.OBJECT_ID_REGEX.test(id)) {
+      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    }
+
     const parentCategoryId = (0, _feathersHooksCommon.getByDot)(hook, 'params.query.parent_category_id');
-    if (typeof parentCategoryId === 'string' && !CATEGORY_ID_REGEX.test(parentCategoryId)) {
+    if (typeof parentCategoryId === 'string' && !_consts.OBJECT_ID_REGEX.test(parentCategoryId)) {
       throw new _feathersErrors.errors.BadRequest('Invalid parent_category_id parameter');
     }
   }],
 
-  get: (0, _feathersHooksCommon.disallow)(),
+  get(hook) {
+    const id = hook.id;
+    if (typeof id !== 'string' || !_consts.OBJECT_ID_REGEX.test(id)) {
+      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    }
+  },
+
   create: (0, _feathersHooksCommon.disallow)(),
   update: (0, _feathersHooksCommon.disallow)(),
   patch: (0, _feathersHooksCommon.disallow)(),

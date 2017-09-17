@@ -4,6 +4,8 @@ var _feathersQueryFilters = require('feathers-query-filters');
 
 var _feathersQueryFilters2 = _interopRequireDefault(_feathersQueryFilters);
 
+var _feathersErrors = require('feathers-errors');
+
 var _feathersCommons = require('feathers-commons');
 
 var _hooks = require('./hooks');
@@ -18,14 +20,17 @@ var _path = require('path');
 
 var _path2 = _interopRequireDefault(_path);
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _consts = require('../../lib/consts');
 
-const CATEGORY_FILE_REGEX = /^\w+$/i;
+var _utils = require('../../lib/utils');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 class Service {
   constructor(options) {
     this.basePath = options.basePath;
     this.paginate = options.paginate || {};
+    this._matcher = options.matcher || _feathersCommons.matcher;
     this._sorter = options.sorter || _feathersCommons.sorter;
 
     // HACK: Syntax highlighting breaks on class methods named 'get'
@@ -39,13 +44,21 @@ class Service {
   _find(params, getFilter = _feathersQueryFilters2.default) {
     const { query, filters } = getFilter(params.query || {});
 
-    const categoryId = typeof query.parent_category_id === 'string' ? query.parent_category_id.toLowerCase() : '';
-    const categoryPath = _path2.default.join(this.basePath, ...categoryId.split('-'));
+    let p = {
+      parentCategoryPath: this.basePath
+    };
+
+    if (typeof query.parent_category_id === 'string') {
+      p = (0, _utils.parseParentCategoryId)(query.parent_category_id, this.basePath);
+      delete query.parent_category_id;
+    } else if (typeof query._id === 'string') {
+      p = (0, _utils.parseCategoryId)(query._id, this.basePath);
+    }
 
     let values = [];
 
     return new Promise((resolve, reject) => {
-      _fs2.default.readdir(categoryPath, (err, files) => err ? reject(err) : resolve(files));
+      _fs2.default.readdir(p.parentCategoryPath, (err, files) => err ? reject(err) : resolve(files));
     }).catch(err => {
       if (err.code !== 'ENOENT') throw err;
       return [];
@@ -56,10 +69,10 @@ class Service {
 
       let step = Promise.resolve();
 
-      files.filter(name => CATEGORY_FILE_REGEX.test(name)).forEach(name => {
+      files.filter(name => _consts.CATEGORY_FILE_REGEX.test(name)).forEach(name => {
         step = step.then(() => {
           return new Promise((resolve, reject) => {
-            _fs2.default.stat(_path2.default.join(categoryPath, name), (err, stats) => {
+            _fs2.default.stat(_path2.default.join(p.parentCategoryPath, name), (err, stats) => {
               if (err) return reject(err);
 
               const item = {
@@ -67,9 +80,9 @@ class Service {
               };
 
               if (stats.isDirectory()) {
-                if (categoryId.length) {
-                  item._id = `${categoryId}-${item._id}`;
-                  item.parent_category_id = categoryId;
+                if (p.parentCategoryId) {
+                  item._id = `${p.parentCategoryId}-${item._id}`;
+                  item.parent_category_id = p.parentCategoryId;
                 }
 
                 item.created_at = stats.ctime;
@@ -86,6 +99,8 @@ class Service {
 
       return step;
     }).then(() => {
+      values = values.filter(this._matcher(query));
+
       const total = values.length;
 
       if (filters.$sort) {
@@ -113,6 +128,31 @@ class Service {
     }
 
     return result;
+  }
+
+  _get(id) {
+    const p = (0, _utils.parseCategoryId)(id, this.basePath);
+    const item = {};
+
+    return new Promise((resolve, reject) => {
+      _fs2.default.stat(p.categoryPath, (err, stats) => {
+        if (err) return reject(err);
+
+        item._id = p.categoryId;
+
+        if (p.parentCategoryId.length) item.parent_category_id = p.parentCategoryId;
+
+        item.created_at = stats.ctime;
+        item.updated_at = stats.mtime;
+
+        resolve();
+      });
+    }).catch(err => {
+      if (err.code !== 'ENOENT') throw err;
+      throw new _feathersErrors.errors.NotFound(`No record found for id '${id}'`);
+    }).then(() => {
+      return item;
+    });
   }
 }
 

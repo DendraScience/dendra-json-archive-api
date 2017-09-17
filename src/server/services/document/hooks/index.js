@@ -1,18 +1,22 @@
 import {disallow, getByDot} from 'feathers-hooks-common'
 import {errors} from 'feathers-errors'
-
-const CATEGORY_ID_REGEX = /^\w+(-\w+)*$/i
+import {OBJECT_ID_REGEX} from '../../../lib/consts'
 
 exports.before = {
   // all: [],
 
   find: [
-    // NOTE: Normally included here, but we don't want to coerce category_id
+    // NOTE: Normally included here, but we don't want to coerce _id and category_id
     // apiHooks.coerceQuery(),
 
     (hook) => {
+      const id = getByDot(hook, 'params.query._id')
+      if ((typeof id === 'string') && !OBJECT_ID_REGEX.test(id)) {
+        throw new errors.BadRequest('Invalid _id parameter')
+      }
+
       const categoryId = getByDot(hook, 'params.query.category_id')
-      if ((typeof categoryId === 'string') && !CATEGORY_ID_REGEX.test(categoryId)) {
+      if ((typeof categoryId === 'string') && !OBJECT_ID_REGEX.test(categoryId)) {
         throw new errors.BadRequest('Invalid category_id parameter')
       }
     }
@@ -20,14 +24,14 @@ exports.before = {
 
   get (hook) {
     const id = hook.id
-    if ((typeof id !== 'string') || !CATEGORY_ID_REGEX.test(id)) {
+    if ((typeof id !== 'string') || !OBJECT_ID_REGEX.test(id)) {
       throw new errors.BadRequest('Invalid _id parameter')
     }
   },
 
   create (hook) {
     const id = getByDot(hook, 'data._id')
-    if ((typeof id !== 'string') || !CATEGORY_ID_REGEX.test(id)) {
+    if ((typeof id !== 'string') || !OBJECT_ID_REGEX.test(id)) {
       throw new errors.BadRequest('Invalid _id field')
     }
   },
@@ -37,7 +41,7 @@ exports.before = {
 
   remove (hook) {
     const id = hook.id
-    if ((typeof id !== 'string') || !CATEGORY_ID_REGEX.test(id)) {
+    if ((typeof id !== 'string') || !OBJECT_ID_REGEX.test(id)) {
       throw new errors.BadRequest('Invalid _id parameter')
     }
   }

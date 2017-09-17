@@ -1,15 +1,18 @@
 import filter from 'feathers-query-filters'
-import {sorter} from 'feathers-commons'
+import {errors} from 'feathers-errors'
+import {matcher, sorter} from 'feathers-commons'
 import hooks from './hooks'
 import fs from 'fs'
 import path from 'path'
 
-const CATEGORY_FILE_REGEX = /^\w+$/i
+import {CATEGORY_FILE_REGEX} from '../../lib/consts'
+import {parseCategoryId, parseParentCategoryId} from '../../lib/utils'
 
 class Service {
   constructor (options) {
     this.basePath = options.basePath
     this.paginate = options.paginate || {}
+    this._matcher = options.matcher || matcher
     this._sorter = options.sorter || sorter
 
     // HACK: Syntax highlighting breaks on class methods named 'get'
@@ -23,13 +26,21 @@ class Service {
   _find (params, getFilter = filter) {
     const {query, filters} = getFilter(params.query || {})
 
-    const categoryId = typeof query.parent_category_id === 'string' ? query.parent_category_id.toLowerCase() : ''
-    const categoryPath = path.join(this.basePath, ...categoryId.split('-'))
+    let p = {
+      parentCategoryPath: this.basePath
+    }
+
+    if (typeof query.parent_category_id === 'string') {
+      p = parseParentCategoryId(query.parent_category_id, this.basePath)
+      delete query.parent_category_id
+    } else if (typeof query._id === 'string') {
+      p = parseCategoryId(query._id, this.basePath)
+    }
 
     let values = []
 
     return new Promise((resolve, reject) => {
-      fs.readdir(categoryPath, (err, files) => err ? reject(err) : resolve(files))
+      fs.readdir(p.parentCategoryPath, (err, files) => err ? reject(err) : resolve(files))
     }).catch(err => {
       if (err.code !== 'ENOENT') throw err
       return []
@@ -43,7 +54,7 @@ class Service {
       files.filter(name => CATEGORY_FILE_REGEX.test(name)).forEach(name => {
         step = step.then(() => {
           return new Promise((resolve, reject) => {
-            fs.stat(path.join(categoryPath, name), (err, stats) => {
+            fs.stat(path.join(p.parentCategoryPath, name), (err, stats) => {
               if (err) return reject(err)
 
               const item = {
@@ -51,9 +62,9 @@ class Service {
               }
 
               if (stats.isDirectory()) {
-                if (categoryId.length) {
-                  item._id = `${categoryId}-${item._id}`
-                  item.parent_category_id = categoryId
+                if (p.parentCategoryId) {
+                  item._id = `${p.parentCategoryId}-${item._id}`
+                  item.parent_category_id = p.parentCategoryId
                 }
 
                 item.created_at = stats.ctime
@@ -70,6 +81,8 @@ class Service {
 
       return step
     }).then(() => {
+      values = values.filter(this._matcher(query))
+
       const total = values.length
 
       if (filters.$sort) {
@@ -97,6 +110,31 @@ class Service {
     }
 
     return result
+  }
+
+  _get (id) {
+    const p = parseCategoryId(id, this.basePath)
+    const item = {}
+
+    return new Promise((resolve, reject) => {
+      fs.stat(p.categoryPath, (err, stats) => {
+        if (err) return reject(err)
+
+        item._id = p.categoryId
+
+        if (p.parentCategoryId.length) item.parent_category_id = p.parentCategoryId
+
+        item.created_at = stats.ctime
+        item.updated_at = stats.mtime
+
+        resolve()
+      })
+    }).catch(err => {
+      if (err.code !== 'ENOENT') throw err
+      throw new errors.NotFound(`No record found for id '${id}'`)
+    }).then(() => {
+      return item
+    })
   }
 }
 

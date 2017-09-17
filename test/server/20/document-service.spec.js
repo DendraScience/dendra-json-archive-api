@@ -64,7 +64,15 @@ describe('Service /documents', function () {
   })
 
   describe('#find()', function () {
-    it('should find without error', function () {
+    it('should find without error using id', function () {
+      return main.app.service('/documents').find({query: {_id: 'aaa-bbb-ccc'}}).then(res => {
+        expect(res).to.have.property('data').lengthOf(1)
+      })
+    })
+  })
+
+  describe('#find()', function () {
+    it('should find without error using category', function () {
       return main.app.service('/documents').find({query: {category_id: 'aaa-bbb'}}).then(res => {
         expect(res).to.have.property('data').lengthOf(1)
       })

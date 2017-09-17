@@ -44,9 +44,23 @@ describe('Service /categories', function () {
     }
   })
 
+  describe('#get()', function () {
+    it('should get without error', function () {
+      return main.app.service('/categories').get('xxx').then(doc => {
+        expect(doc).to.have.property('_id', 'xxx')
+      })
+    })
+  })
+
   describe('#find()', function () {
     it('should find without error', function () {
       return main.app.service('/categories').find().then(res => {
+        expect(res).to.have.property('data').lengthOf(1)
+      })
+    })
+
+    it('should find without error using id', function () {
+      return main.app.service('/categories').find({query: {_id: 'xxx-yyy'}}).then(res => {
         expect(res).to.have.property('data').lengthOf(1)
       })
     })

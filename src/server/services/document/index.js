@@ -1,17 +1,18 @@
 import filter from 'feathers-query-filters'
 import {errors} from 'feathers-errors'
-import {sorter} from 'feathers-commons'
+import {matcher, sorter} from 'feathers-commons'
 import hooks from './hooks'
 import fs from 'fs'
 import path from 'path'
 
-// NOTE: No support for ZIP files yet
-const DOCUMENT_FILE_REGEX = /.(json)$/i
+import {DOCUMENT_FILE_REGEX} from '../../lib/consts'
+import {parseCategoryId, parseDocumentId} from '../../lib/utils'
 
 class Service {
   constructor (options) {
     this.basePath = options.basePath
     this.paginate = options.paginate || {}
+    this._matcher = options.matcher || matcher
     this._sorter = options.sorter || sorter
 
     // HACK: Syntax highlighting breaks on class methods named 'get'
@@ -25,13 +26,21 @@ class Service {
   _find (params, getFilter = filter) {
     const {query, filters} = getFilter(params.query || {})
 
-    const categoryId = typeof query.category_id === 'string' ? query.category_id.toLowerCase() : ''
-    const categoryPath = path.join(this.basePath, ...categoryId.split('-'))
+    let p = {
+      categoryPath: this.basePath
+    }
+
+    if (typeof query.category_id === 'string') {
+      p = parseCategoryId(query.category_id, this.basePath)
+      delete query.category_id
+    } else if (typeof query._id === 'string') {
+      p = parseDocumentId(query._id, this.basePath)
+    }
 
     let values = []
 
     return new Promise((resolve, reject) => {
-      fs.readdir(categoryPath, (err, files) => err ? reject(err) : resolve(files))
+      fs.readdir(p.categoryPath, (err, files) => err ? reject(err) : resolve(files))
     }).catch(err => {
       if (err.code !== 'ENOENT') throw err
       return []
@@ -45,7 +54,7 @@ class Service {
       files.filter(name => DOCUMENT_FILE_REGEX.test(name)).forEach(name => {
         step = step.then(() => {
           return new Promise((resolve, reject) => {
-            fs.stat(path.join(categoryPath, name), (err, stats) => {
+            fs.stat(path.join(p.categoryPath, name), (err, stats) => {
               if (err) return reject(err)
 
               const item = {}
@@ -56,9 +65,9 @@ class Service {
               }
 
               if (item._id) {
-                if (categoryId.length) {
-                  item._id = `${categoryId}-${item._id}`
-                  item.category_id = categoryId
+                if (p.categoryId) {
+                  item._id = `${p.categoryId}-${item._id}`
+                  item.category_id = p.categoryId
                 }
 
                 item.created_at = stats.ctime
@@ -75,6 +84,8 @@ class Service {
 
       return step
     }).then(() => {
+      values = values.filter(this._matcher(query))
+
       const total = values.length
 
       if (filters.$sort) {
@@ -104,27 +115,8 @@ class Service {
     return result
   }
 
-  _parseId (id) {
-    const documentId = id.toLowerCase()
-    const parts = documentId.split('-')
-    const documentName = `${parts[parts.length - 1]}.json`
-    const categoryParts = parts.slice(0, parts.length - 1)
-    const categoryPath = path.join(this.basePath, ...categoryParts)
-    const categoryId = categoryParts.join('-')
-    const documentPath = path.join(categoryPath, documentName)
-
-    return {
-      categoryId,
-      categoryParts,
-      categoryPath,
-      documentId,
-      documentName,
-      documentPath
-    }
-  }
-
   _get (id) {
-    const p = this._parseId(id)
+    const p = parseDocumentId(id, this.basePath)
     const item = {}
 
     return new Promise((resolve, reject) => {
@@ -167,7 +159,7 @@ class Service {
   }
 
   _create (data, params) {
-    const p = this._parseId(data._id)
+    const p = parseDocumentId(data._id, this.basePath)
 
     let step = Promise.resolve()
 
@@ -202,7 +194,7 @@ class Service {
   }
 
   remove (id, params) {
-    const p = this._parseId(id)
+    const p = parseDocumentId(id, this.basePath)
 
     let item
 

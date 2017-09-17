@@ -20,15 +20,17 @@ var _path = require('path');
 
 var _path2 = _interopRequireDefault(_path);
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _consts = require('../../lib/consts');
 
-// NOTE: No support for ZIP files yet
-const DOCUMENT_FILE_REGEX = /.(json)$/i;
+var _utils = require('../../lib/utils');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 class Service {
   constructor(options) {
     this.basePath = options.basePath;
     this.paginate = options.paginate || {};
+    this._matcher = options.matcher || _feathersCommons.matcher;
     this._sorter = options.sorter || _feathersCommons.sorter;
 
     // HACK: Syntax highlighting breaks on class methods named 'get'
@@ -42,13 +44,21 @@ class Service {
   _find(params, getFilter = _feathersQueryFilters2.default) {
     const { query, filters } = getFilter(params.query || {});
 
-    const categoryId = typeof query.category_id === 'string' ? query.category_id.toLowerCase() : '';
-    const categoryPath = _path2.default.join(this.basePath, ...categoryId.split('-'));
+    let p = {
+      categoryPath: this.basePath
+    };
+
+    if (typeof query.category_id === 'string') {
+      p = (0, _utils.parseCategoryId)(query.category_id, this.basePath);
+      delete query.category_id;
+    } else if (typeof query._id === 'string') {
+      p = (0, _utils.parseDocumentId)(query._id, this.basePath);
+    }
 
     let values = [];
 
     return new Promise((resolve, reject) => {
-      _fs2.default.readdir(categoryPath, (err, files) => err ? reject(err) : resolve(files));
+      _fs2.default.readdir(p.categoryPath, (err, files) => err ? reject(err) : resolve(files));
     }).catch(err => {
       if (err.code !== 'ENOENT') throw err;
       return [];
@@ -59,10 +69,10 @@ class Service {
 
       let step = Promise.resolve();
 
-      files.filter(name => DOCUMENT_FILE_REGEX.test(name)).forEach(name => {
+      files.filter(name => _consts.DOCUMENT_FILE_REGEX.test(name)).forEach(name => {
         step = step.then(() => {
           return new Promise((resolve, reject) => {
-            _fs2.default.stat(_path2.default.join(categoryPath, name), (err, stats) => {
+            _fs2.default.stat(_path2.default.join(p.categoryPath, name), (err, stats) => {
               if (err) return reject(err);
 
               const item = {};
@@ -73,9 +83,9 @@ class Service {
               }
 
               if (item._id) {
-                if (categoryId.length) {
-                  item._id = `${categoryId}-${item._id}`;
-                  item.category_id = categoryId;
+                if (p.categoryId) {
+                  item._id = `${p.categoryId}-${item._id}`;
+                  item.category_id = p.categoryId;
                 }
 
                 item.created_at = stats.ctime;
@@ -92,6 +102,8 @@ class Service {
 
       return step;
     }).then(() => {
+      values = values.filter(this._matcher(query));
+
       const total = values.length;
 
       if (filters.$sort) {
@@ -121,27 +133,8 @@ class Service {
     return result;
   }
 
-  _parseId(id) {
-    const documentId = id.toLowerCase();
-    const parts = documentId.split('-');
-    const documentName = `${parts[parts.length - 1]}.json`;
-    const categoryParts = parts.slice(0, parts.length - 1);
-    const categoryPath = _path2.default.join(this.basePath, ...categoryParts);
-    const categoryId = categoryParts.join('-');
-    const documentPath = _path2.default.join(categoryPath, documentName);
-
-    return {
-      categoryId,
-      categoryParts,
-      categoryPath,
-      documentId,
-      documentName,
-      documentPath
-    };
-  }
-
   _get(id) {
-    const p = this._parseId(id);
+    const p = (0, _utils.parseDocumentId)(id, this.basePath);
     const item = {};
 
     return new Promise((resolve, reject) => {
@@ -184,7 +177,7 @@ class Service {
   }
 
   _create(data, params) {
-    const p = this._parseId(data._id);
+    const p = (0, _utils.parseDocumentId)(data._id, this.basePath);
 
     let step = Promise.resolve();
 
@@ -219,7 +212,7 @@ class Service {
   }
 
   remove(id, params) {
-    const p = this._parseId(id);
+    const p = (0, _utils.parseDocumentId)(id, this.basePath);
 
     let item;
 
