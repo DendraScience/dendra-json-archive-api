@@ -1,6 +1,6 @@
 # Dendra JSON Archive API
 
-Provides a Feathers service (REST API) wrapper around the file system. Used internally to store and retrieve archived JSON collection from various sources.
+Provides a Feathers service (REST API) wrapper around the file system. Used internally to store and retrieve archived JSON collected from various sources.
 
 
 ## Instructions

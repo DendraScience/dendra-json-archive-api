@@ -1,3 +1,14 @@
 {
+  "databases": {
+    "file": {
+      "archive": {
+        "paginate": {
+          "default": 20,
+          "max": 2000
+        },
+        "path": "/data/json"
+      }
+    }
+  },
   "port": 8080
 }

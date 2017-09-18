@@ -2,6 +2,10 @@ FROM node:6.11
 
 MAINTAINER J. Scott Smith <scott@newleafsolutionsinc.com>
 
+RUN mkdir -p /data/json \
+	&& chown -R node:node /data/json
+VOLUME /data/json
+
 #
 # Following Best Practices and guidelines at:
 # 	https://nodejs.org/en/docs/guides/nodejs-docker-webapp/
