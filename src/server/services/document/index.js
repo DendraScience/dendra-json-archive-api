@@ -19,10 +19,6 @@ class Service {
     this.get = this._get
   }
 
-  setup (app) {
-    this.app = app
-  }
-
   _find (params, getFilter = filter) {
     const {query, filters} = getFilter(params.query || {})
 

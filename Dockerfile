@@ -2,15 +2,18 @@ FROM node:6.11
 
 MAINTAINER J. Scott Smith <scott@newleafsolutionsinc.com>
 
-RUN mkdir -p /data/json \
-	&& chown -R node:node /data/json
-VOLUME /data/json
-
 #
 # Following Best Practices and guidelines at:
 # 	https://nodejs.org/en/docs/guides/nodejs-docker-webapp/
 # 	https://github.com/nodejs/docker-node/blob/master/docs/BestPractices.md
 #
+
+RUN groupmod -g 2000 node \
+  && usermod -u 2000 -g 2000 node
+
+RUN mkdir -p /data/json \
+	&& chown -R node:node /data/json
+VOLUME /data/json
 
 WORKDIR /home/node/app
 
