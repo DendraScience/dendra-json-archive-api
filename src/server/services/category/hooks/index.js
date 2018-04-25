@@ -1,6 +1,6 @@
-import {disallow, getByDot} from 'feathers-hooks-common'
-import {errors} from 'feathers-errors'
-import {OBJECT_ID_REGEX} from '../../../lib/consts'
+const {disallow, getByDot} = require('feathers-hooks-common')
+const {errors} = require('feathers-errors')
+const {OBJECT_ID_REGEX} = require('../../../lib/consts')
 
 exports.before = {
   // all: [],

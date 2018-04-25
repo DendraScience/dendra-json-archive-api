@@ -6,9 +6,9 @@
  * @module lib/utils
  */
 
-import path from 'path'
+const path = require('path')
 
-export function parseCategoryId (id, basePath) {
+function parseCategoryId (id, basePath) {
   const categoryId = id.toLowerCase()
   const parts = categoryId.split('-')
   const categoryParts = parts
@@ -27,7 +27,7 @@ export function parseCategoryId (id, basePath) {
   }
 }
 
-export function parseParentCategoryId (id, basePath) {
+function parseParentCategoryId (id, basePath) {
   const parentCategoryId = id.toLowerCase()
   const parts = parentCategoryId.split('-')
   const parentCategoryParts = parts
@@ -40,7 +40,7 @@ export function parseParentCategoryId (id, basePath) {
   }
 }
 
-export function parseDocumentId (id, basePath) {
+function parseDocumentId (id, basePath) {
   const documentId = id.toLowerCase()
   const parts = documentId.split('-')
   const documentName = `${parts[parts.length - 1]}.json`
@@ -57,4 +57,10 @@ export function parseDocumentId (id, basePath) {
     documentName,
     documentPath
   }
+}
+
+module.exports = {
+  parseCategoryId,
+  parseParentCategoryId,
+  parseDocumentId
 }

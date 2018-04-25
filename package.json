@@ -1,6 +1,6 @@
 {
   "name": "dendra-json-archive-api",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Dendra internal API for long-term storage of JSON documents.",
   "license": "BSD-2-Clause-FreeBSD",
   "author": "J. Scott Smith <scott@newleafsolutionsinc.com>",
@@ -29,38 +29,38 @@
     "test-server:watch": "chokidar --initial 'src/server/**/*.js' 'test/server/**/*.js' -c 'npm run test-server:build'"
   },
   "engines": {
-    "node": ">=6.11.0"
+    "node": ">=8.7.0"
   },
   "dependencies": {
-    "@dendra-science/api-hooks-common": "0.0.1",
+    "@dendra-science/api-hooks-common": "0.0.4",
     "babel-runtime": "^6.26.0",
-    "body-parser": "^1.17.2",
-    "compression": "^1.7.0",
+    "body-parser": "^1.18.2",
+    "compression": "^1.7.1",
     "cors": "^2.8.4",
-    "express": "^4.15.4",
-    "feathers": "^2.1.7",
-    "feathers-configuration": "^0.4.1",
+    "express": "^4.16.3",
+    "feathers": "^2.2.3",
+    "feathers-configuration": "^0.4.2",
     "feathers-errors": "^2.9.1",
-    "feathers-hooks": "^2.0.2",
-    "feathers-hooks-common": "^3.7.1",
-    "feathers-nedb": "^2.6.2",
-    "feathers-rest": "^1.8.0",
-    "feathers-socketio": "^2.0.0",
+    "feathers-hooks": "^2.1.2",
+    "feathers-hooks-common": "^3.10.0",
+    "feathers-query-filters": "^2.1.2",
+    "feathers-rest": "^1.8.1",
+    "feathers-socketio": "^2.0.1",
     "pug": "^2.0.0-rc.3",
-    "winston": "^2.2.0"
+    "winston": "^2.4.1"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-preset-es2015-node6": "^0.4.0",
+    "babel-preset-env": "^1.6.1",
     "chai": "^4.1.1",
-    "eslint": "^4.4.1",
-    "eslint-config-standard": "^10.2.1",
-    "eslint-plugin-import": "^2.7.0",
-    "eslint-plugin-node": "^5.1.1",
-    "eslint-plugin-promise": "^3.5.0",
+    "eslint": "^4.18.2",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.9.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
     "eslint-plugin-standard": "^3.0.1",
-    "mocha": "^3.5.0"
+    "mocha": "^5.0.4"
   },
   "optionalDependencies": {
     "fsevents": "^1.0.0"

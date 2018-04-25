@@ -1,10 +1,8 @@
 'use strict';
 
-var _feathersHooksCommon = require('feathers-hooks-common');
-
-var _feathersErrors = require('feathers-errors');
-
-var _consts = require('../../../lib/consts');
+const { disallow, getByDot } = require('feathers-hooks-common');
+const { errors } = require('feathers-errors');
+const { OBJECT_ID_REGEX } = require('../../../lib/consts');
 
 exports.before = {
   // all: [],
@@ -14,28 +12,28 @@ exports.before = {
   // apiHooks.coerceQuery(),
 
   hook => {
-    const id = (0, _feathersHooksCommon.getByDot)(hook, 'params.query._id');
-    if (typeof id === 'string' && !_consts.OBJECT_ID_REGEX.test(id)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    const id = getByDot(hook, 'params.query._id');
+    if (typeof id === 'string' && !OBJECT_ID_REGEX.test(id)) {
+      throw new errors.BadRequest('Invalid _id parameter');
     }
 
-    const parentCategoryId = (0, _feathersHooksCommon.getByDot)(hook, 'params.query.parent_category_id');
-    if (typeof parentCategoryId === 'string' && !_consts.OBJECT_ID_REGEX.test(parentCategoryId)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid parent_category_id parameter');
+    const parentCategoryId = getByDot(hook, 'params.query.parent_category_id');
+    if (typeof parentCategoryId === 'string' && !OBJECT_ID_REGEX.test(parentCategoryId)) {
+      throw new errors.BadRequest('Invalid parent_category_id parameter');
     }
   }],
 
   get(hook) {
     const id = hook.id;
-    if (typeof id !== 'string' || !_consts.OBJECT_ID_REGEX.test(id)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    if (typeof id !== 'string' || !OBJECT_ID_REGEX.test(id)) {
+      throw new errors.BadRequest('Invalid _id parameter');
     }
   },
 
-  create: (0, _feathersHooksCommon.disallow)(),
-  update: (0, _feathersHooksCommon.disallow)(),
-  patch: (0, _feathersHooksCommon.disallow)(),
-  remove: (0, _feathersHooksCommon.disallow)()
+  create: disallow(),
+  update: disallow(),
+  patch: disallow(),
+  remove: disallow()
 };
 
 exports.after = {
