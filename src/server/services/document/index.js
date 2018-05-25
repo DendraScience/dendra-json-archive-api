@@ -1,12 +1,12 @@
-import filter from 'feathers-query-filters'
-import {errors} from 'feathers-errors'
-import {matcher, sorter} from 'feathers-commons'
-import hooks from './hooks'
-import fs from 'fs'
-import path from 'path'
+const filter = require('feathers-query-filters')
+const {errors} = require('feathers-errors')
+const {matcher, sorter} = require('feathers-commons')
+const hooks = require('./hooks')
+const fs = require('fs')
+const path = require('path')
 
-import {DOCUMENT_FILE_REGEX} from '../../lib/consts'
-import {parseCategoryId, parseDocumentId} from '../../lib/utils'
+const {DOCUMENT_FILE_REGEX} = require('../../lib/consts')
+const {parseCategoryId, parseDocumentId} = require('../../lib/utils')
 
 class Service {
   constructor (options) {

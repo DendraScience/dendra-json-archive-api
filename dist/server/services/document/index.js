@@ -1,47 +1,27 @@
 'use strict';
 
-var _feathersQueryFilters = require('feathers-query-filters');
+const filter = require('feathers-query-filters');
+const { errors } = require('feathers-errors');
+const { matcher, sorter } = require('feathers-commons');
+const hooks = require('./hooks');
+const fs = require('fs');
+const path = require('path');
 
-var _feathersQueryFilters2 = _interopRequireDefault(_feathersQueryFilters);
-
-var _feathersErrors = require('feathers-errors');
-
-var _feathersCommons = require('feathers-commons');
-
-var _hooks = require('./hooks');
-
-var _hooks2 = _interopRequireDefault(_hooks);
-
-var _fs = require('fs');
-
-var _fs2 = _interopRequireDefault(_fs);
-
-var _path = require('path');
-
-var _path2 = _interopRequireDefault(_path);
-
-var _consts = require('../../lib/consts');
-
-var _utils = require('../../lib/utils');
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+const { DOCUMENT_FILE_REGEX } = require('../../lib/consts');
+const { parseCategoryId, parseDocumentId } = require('../../lib/utils');
 
 class Service {
   constructor(options) {
     this.basePath = options.basePath;
     this.paginate = options.paginate || {};
-    this._matcher = options.matcher || _feathersCommons.matcher;
-    this._sorter = options.sorter || _feathersCommons.sorter;
+    this._matcher = options.matcher || matcher;
+    this._sorter = options.sorter || sorter;
 
     // HACK: Syntax highlighting breaks on class methods named 'get'
     this.get = this._get;
   }
 
-  setup(app) {
-    this.app = app;
-  }
-
-  _find(params, getFilter = _feathersQueryFilters2.default) {
+  _find(params, getFilter = filter) {
     const { query, filters } = getFilter(params.query || {});
 
     let p = {
@@ -49,16 +29,16 @@ class Service {
     };
 
     if (typeof query.category_id === 'string') {
-      p = (0, _utils.parseCategoryId)(query.category_id, this.basePath);
+      p = parseCategoryId(query.category_id, this.basePath);
       delete query.category_id;
     } else if (typeof query._id === 'string') {
-      p = (0, _utils.parseDocumentId)(query._id, this.basePath);
+      p = parseDocumentId(query._id, this.basePath);
     }
 
     let values = [];
 
     return new Promise((resolve, reject) => {
-      _fs2.default.readdir(p.categoryPath, (err, files) => err ? reject(err) : resolve(files));
+      fs.readdir(p.categoryPath, (err, files) => err ? reject(err) : resolve(files));
     }).catch(err => {
       if (err.code !== 'ENOENT') throw err;
       return [];
@@ -69,10 +49,10 @@ class Service {
 
       let step = Promise.resolve();
 
-      files.filter(name => _consts.DOCUMENT_FILE_REGEX.test(name)).forEach(name => {
+      files.filter(name => DOCUMENT_FILE_REGEX.test(name)).forEach(name => {
         step = step.then(() => {
           return new Promise((resolve, reject) => {
-            _fs2.default.stat(_path2.default.join(p.categoryPath, name), (err, stats) => {
+            fs.stat(path.join(p.categoryPath, name), (err, stats) => {
               if (err) return reject(err);
 
               const item = {};
@@ -124,7 +104,7 @@ class Service {
 
   find(params) {
     const paginate = typeof params.paginate !== 'undefined' ? params.paginate : this.paginate;
-    const result = this._find(params, query => (0, _feathersQueryFilters2.default)(query, paginate));
+    const result = this._find(params, query => filter(query, paginate));
 
     if (!(paginate && paginate.default)) {
       return result.then(page => page.data);
@@ -134,11 +114,11 @@ class Service {
   }
 
   _get(id) {
-    const p = (0, _utils.parseDocumentId)(id, this.basePath);
+    const p = parseDocumentId(id, this.basePath);
     const item = {};
 
     return new Promise((resolve, reject) => {
-      _fs2.default.stat(p.documentPath, (err, stats) => {
+      fs.stat(p.documentPath, (err, stats) => {
         if (err) return reject(err);
 
         item._id = p.documentId;
@@ -153,10 +133,10 @@ class Service {
       });
     }).catch(err => {
       if (err.code !== 'ENOENT') throw err;
-      throw new _feathersErrors.errors.NotFound(`No record found for id '${id}'`);
+      throw new errors.NotFound(`No record found for id '${id}'`);
     }).then(() => {
       return new Promise((resolve, reject) => {
-        _fs2.default.readFile(p.documentPath, 'utf8', (err, data) => {
+        fs.readFile(p.documentPath, 'utf8', (err, data) => {
           if (err) return reject(err);
 
           // Async-ish JSON parsing
@@ -177,15 +157,15 @@ class Service {
   }
 
   _create(data, params) {
-    const p = (0, _utils.parseDocumentId)(data._id, this.basePath);
+    const p = parseDocumentId(data._id, this.basePath);
 
     let step = Promise.resolve();
 
     p.categoryParts.forEach((name, i) => {
       step = step.then(() => {
         return new Promise((resolve, reject) => {
-          const partialPath = _path2.default.join(this.basePath, ...p.categoryParts.slice(0, i + 1));
-          _fs2.default.mkdir(partialPath, err => err && err.code !== 'EEXIST' ? reject(err) : resolve());
+          const partialPath = path.join(this.basePath, ...p.categoryParts.slice(0, i + 1));
+          fs.mkdir(partialPath, err => err && err.code !== 'EEXIST' ? reject(err) : resolve());
         });
       });
     });
@@ -194,7 +174,7 @@ class Service {
       return new Promise((resolve, reject) => {
         const content = data.content || {};
 
-        _fs2.default.writeFile(p.documentPath, JSON.stringify(content), err => {
+        fs.writeFile(p.documentPath, JSON.stringify(content), err => {
           if (err) return reject(err);
 
           resolve(this._get(p.documentId));
@@ -212,7 +192,7 @@ class Service {
   }
 
   remove(id, params) {
-    const p = (0, _utils.parseDocumentId)(id, this.basePath);
+    const p = parseDocumentId(id, this.basePath);
 
     let item;
 
@@ -220,7 +200,7 @@ class Service {
       item = res;
 
       return new Promise((resolve, reject) => {
-        _fs2.default.unlink(p.documentPath, err => err && err.code !== 'ENOENT' ? reject(err) : resolve());
+        fs.unlink(p.documentPath, err => err && err.code !== 'ENOENT' ? reject(err) : resolve());
       });
     }).then(() => {
       return item;
@@ -243,8 +223,8 @@ module.exports = function () {
         // Get the wrapped service object, bind hooks
         const documentService = app.service('/documents');
 
-        documentService.before(_hooks2.default.before);
-        documentService.after(_hooks2.default.after);
+        documentService.before(hooks.before);
+        documentService.after(hooks.after);
       }));
     }
   };

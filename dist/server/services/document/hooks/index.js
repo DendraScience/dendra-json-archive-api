@@ -1,10 +1,8 @@
 'use strict';
 
-var _feathersHooksCommon = require('feathers-hooks-common');
-
-var _feathersErrors = require('feathers-errors');
-
-var _consts = require('../../../lib/consts');
+const { disallow, getByDot } = require('feathers-hooks-common');
+const { errors } = require('feathers-errors');
+const { OBJECT_ID_REGEX } = require('../../../lib/consts');
 
 exports.before = {
   // all: [],
@@ -14,38 +12,38 @@ exports.before = {
   // apiHooks.coerceQuery(),
 
   hook => {
-    const id = (0, _feathersHooksCommon.getByDot)(hook, 'params.query._id');
-    if (typeof id === 'string' && !_consts.OBJECT_ID_REGEX.test(id)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    const id = getByDot(hook, 'params.query._id');
+    if (typeof id === 'string' && !OBJECT_ID_REGEX.test(id)) {
+      throw new errors.BadRequest('Invalid _id parameter');
     }
 
-    const categoryId = (0, _feathersHooksCommon.getByDot)(hook, 'params.query.category_id');
-    if (typeof categoryId === 'string' && !_consts.OBJECT_ID_REGEX.test(categoryId)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid category_id parameter');
+    const categoryId = getByDot(hook, 'params.query.category_id');
+    if (typeof categoryId === 'string' && !OBJECT_ID_REGEX.test(categoryId)) {
+      throw new errors.BadRequest('Invalid category_id parameter');
     }
   }],
 
   get(hook) {
     const id = hook.id;
-    if (typeof id !== 'string' || !_consts.OBJECT_ID_REGEX.test(id)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    if (typeof id !== 'string' || !OBJECT_ID_REGEX.test(id)) {
+      throw new errors.BadRequest('Invalid _id parameter');
     }
   },
 
   create(hook) {
-    const id = (0, _feathersHooksCommon.getByDot)(hook, 'data._id');
-    if (typeof id !== 'string' || !_consts.OBJECT_ID_REGEX.test(id)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid _id field');
+    const id = getByDot(hook, 'data._id');
+    if (typeof id !== 'string' || !OBJECT_ID_REGEX.test(id)) {
+      throw new errors.BadRequest('Invalid _id field');
     }
   },
 
-  update: (0, _feathersHooksCommon.disallow)(),
-  patch: (0, _feathersHooksCommon.disallow)(),
+  update: disallow(),
+  patch: disallow(),
 
   remove(hook) {
     const id = hook.id;
-    if (typeof id !== 'string' || !_consts.OBJECT_ID_REGEX.test(id)) {
-      throw new _feathersErrors.errors.BadRequest('Invalid _id parameter');
+    if (typeof id !== 'string' || !OBJECT_ID_REGEX.test(id)) {
+      throw new errors.BadRequest('Invalid _id parameter');
     }
   }
 };
